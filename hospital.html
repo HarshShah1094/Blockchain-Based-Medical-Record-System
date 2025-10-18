@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Blockchain Medical Records DApp</title>
+  <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
+</head>
+<body>
+  <h2>Medical Records Blockchain App</h2>
+  <button onclick="connectWallet()">Connect MetaMask</button>
+  <span id="wallet"></span>
+
+  <h3>Generate Record</h3>
+  <input type="text" id="genPatient" placeholder="Patient Address" />
+  <input type="text" id="genName" placeholder="Patient Name" />
+  <input type="text" id="genData" placeholder="Data or Hash" />
+  <button onclick="generateRecord()">Generate</button>
+
+  <h3>Verify Record</h3>
+  <input type="text" id="verPatient" placeholder="Patient Address" />
+  <button onclick="verifyRecord()">Verify</button>
+  <pre id="verifyResult"></pre>
+
+  <h3>Deliver Record</h3>
+  <input type="text" id="delPatient" placeholder="Patient Address" />
+  <button onclick="deliverRecord()">Deliver</button>
+
+<script>
+let web3;
+let contract;
+let accounts;
+const contractAddress = "0xd9145CCE52D386f254917e481eB44e9943F39138";
+const contractABI = [
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "patient",
+				"type": "address"
+			}
+		],
+		"name": "deliverRecord",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "patient",
+				"type": "address"
+			},
+			{
+				"internalType": "string",
+				"name": "patientName",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "details",
+				"type": "string"
+			}
+		],
+		"name": "generateRecord",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "patient",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "doctor",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "timestamp",
+				"type": "uint256"
+			}
+		],
+		"name": "RecordDelivered",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "patient",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "doctor",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "timestamp",
+				"type": "uint256"
+			}
+		],
+		"name": "RecordGenerated",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "patient",
+				"type": "address"
+			}
+		],
+		"name": "verifyRecord",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "doctor",
+				"type": "address"
+			},
+			{
+				"internalType": "string",
+				"name": "patientName",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "details",
+				"type": "string"
+			},
+			{
+				"internalType": "bool",
+				"name": "delivered",
+				"type": "bool"
+			},
+			{
+				"internalType": "uint256",
+				"name": "timestamp",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+]; // Copy ABI array from Remix compile details
+
+async function connectWallet() {
+  if (window.ethereum) {
+    web3 = new Web3(window.ethereum);
+    accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+    document.getElementById("wallet").innerText = "Connected: " + accounts[0];
+    contract = new web3.eth.Contract(contractABI, contractAddress);
+  } else {
+    alert('Please install MetaMask to interact');
+  }
+}
+
+async function generateRecord() {
+  const patient = document.getElementById("genPatient").value;
+  const name = document.getElementById("genName").value;
+  const data = document.getElementById("genData").value;
+  await contract.methods.generateRecord(patient, name, data).send({ from: accounts[0] });
+  alert("Record generated!");
+}
+
+async function verifyRecord() {
+  const patient = document.getElementById("verPatient").value;
+  const response = await contract.methods.verifyRecord(patient).call();
+  document.getElementById("verifyResult").innerText =
+    "Doctor: " + response[0] + "\n" +
+    "Patient Name: " + response[1] + "\n" +
+    "Data: " + response[2] + "\n" +
+    "Delivered: " + response[3] + "\n" +
+    "Timestamp: " + new Date(response[4]*1000).toLocaleString();
+}
+
+async function deliverRecord() {
+  const patient = document.getElementById("delPatient").value;
+  await contract.methods.deliverRecord(patient).send({ from: accounts[0] });
+  alert("Record delivered!");
+}
+</script>
+</body>
+</html>
